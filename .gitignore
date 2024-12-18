@@ -1,0 +1,38 @@
+# PyCharm, VSCode gibi IDE dosyalarını hariç tut
+/.idea/
+/.vscode/
+
+
+# Python cache dosyalarını hariç tut
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Model checkpoint klasörlerini hariç tut
+results/checkpoint-*/
+
+# Eğitim sırasında oluşturulan büyük dosyaları hariç tut
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Model çıktıları ve geçici dosyalar
+sentiment/analysis/emotion_model_results/
+fine_tuned_emotion_model/model.safetensors
+fine_tuned_emotion_model/training_args.bin
+
+# Migrations dosyaları (sadece geliştirme aşamasında kullanılıyorsa hariç tut)
+migrations/
+
+# Log dosyaları
+*.log
+
+# Ortam dosyaları (ör. Django'da kullanılan .env)
+.env
+
+# Tokenizer ve vocab dosyalarını da hariç tut
+special_tokens_map.json
+tokenizer.json
+vocab.txt
