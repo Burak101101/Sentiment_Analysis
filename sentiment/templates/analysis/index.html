@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Sentiment Analysis</title>
+</head>
+<body>
+    <h1>Reddit Sentiment Analysis</h1>
+    <form action="{% url 'analyze_subreddit_page' %}" method="GET">
+        <label for="subreddit">Enter Subreddit Name:</label>
+        <input type="text" id="subreddit" name="subreddit_name" required>
+        <button type="submit">Analyze</button>
+    </form>
+</body>
+</html>

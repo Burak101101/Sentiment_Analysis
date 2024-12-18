@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subreddit Sentiment Comparison</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Subreddit Sentiment Comparison</h1>
+    <p><strong>Subreddit 1:</strong> {{ subreddit_1 }}</p>
+    <p><strong>Subreddit 2:</strong> {{ subreddit_2 }}</p>
+
+   <div id="comparison-chart" style="width: 100%; height: 500px;"></div>
+
+<script>
+    var subredditNames = ["{{ subreddit_1 }}", "{{ subreddit_2 }}"];
+    var avgScores = [{{ avg_score_1 }}, {{ avg_score_2 }}];
+
+    var data = [
+        {
+            x: subredditNames,
+            y: avgScores,
+            type: 'bar',
+            marker: { color: ['blue', 'orange'] },
+        }
+    ];
+
+    var layout = {
+        title: 'Sentiment Comparison Between Subreddits',
+        xaxis: { title: 'Subreddits' },
+        yaxis: { title: 'Average Sentiment Score' },
+    };
+
+    Plotly.newPlot('comparison-chart', data, layout);
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Analysis Results for {{ subreddit_name }}</h1>
+
+    <!-- Gönderilerin sentiment analizi -->
+    <div>
+        <h2>Post Sentiments</h2>
+        <table border="1">
+            <tr>
+                <th>Title</th>
+                <th>Sentiment</th>
+                <th>Confidence</th>
+            </tr>
+            {% for post in analysis_data %}
+            <tr>
+                <td>{{ post.title }}</td>
+                <td>{{ post.sentiment.label }}</td>
+                <td>{{ post.sentiment.score|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- Zaman Serisi Grafiği -->
+    <div>
+    <h2>Time Series Analysis</h2>
+    <div id="time-series-chart" style="width: 100%; height: 500px;"></div>
+    <script>
+        var timestamps = {{ timestamps|safe }};
+        var scores = {{ scores|safe }};
+
+        var data = [
+            {
+                x: timestamps,
+                y: scores,
+                mode: 'lines+markers',
+                type: 'scatter',
+                line: { shape: 'spline', color: 'blue' },
+                marker: { size: 8 }
+            }
+        ];
+
+        var layout = {
+            title: 'Sentiment Over Time',
+            xaxis: { title: 'Time' },
+            yaxis: { title: 'Confidence Score' }
+        };
+
+        Plotly.newPlot('time-series-chart', data, layout);
+    </script>
+</div>
+<a href="{% url 'compare_subreddits' %}">
+    <button>Compare Subreddits</button>
+</a>
+</body>
+</html>
