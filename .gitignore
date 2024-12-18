@@ -19,7 +19,6 @@ results/checkpoint-*/
 *.pth
 
 # Model çıktıları ve geçici dosyalar
-sentiment/analysis/emotion_model_results/
 fine_tuned_emotion_model/model.safetensors
 fine_tuned_emotion_model/training_args.bin
 
