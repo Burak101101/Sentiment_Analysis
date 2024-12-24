@@ -1,62 +1,39 @@
-# fine_tune.py
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
-from datasets import load_dataset, Dataset
-import numpy as np
+import pandas as pd
+from datasets import Dataset
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    TrainingArguments,
+    Trainer,
+    DataCollatorWithPadding,
+    AutoConfig
+)
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-import random
 import torch
 
 
-def prepare_dataset():
-    # Veri setini yükle
-    dataset = load_dataset("go_emotions", "simplified")
+def prepare_dataset_from_csv(csv_path):
+    # CSV dosyasını oku
+    df = pd.read_csv(csv_path)
 
-    # İstediğimiz duyguların ID'leri
-    emotion_ids = {
-        6: 'joy',
-        0: 'anger',
-        12: 'sadness',
-        3: 'disappointment',
-        7: 'love',
-        14: 'surprise'
-    }
+    # text ve labels sütunlarını kontrol et
+    if 'text' not in df.columns or 'labels' not in df.columns:
+        raise ValueError("CSV dosyasında 'text' ve 'labels' sütunları bulunmalıdır.")
 
-    # Veriyi hazırla
-    texts = []
-    labels = []
+    # Orijinal etiketleri sıfır tabanlı sisteme dönüştürme
+    original_labels = sorted(df['labels'].unique())  # Mevcut etiketleri sırala
+    label_mapping = {original: new for new, original in enumerate(original_labels)}  # Haritalama
+    df['labels'] = df['labels'].map(label_mapping)  # Güncelle
 
-    for example in dataset['train']:
-        # Örneğin etiketlerinden istediğimiz bir duygu var mı kontrol et
-        for label in example['labels']:
-            if label in emotion_ids:
-                texts.append(example['text'])
-                labels.append(list(emotion_ids.keys()).index(label))  # Yeni index'e çevir
-                break
-
-    # Her duygu için maksimum 1500 örnek al
-    emotion_counts = {i: 0 for i in range(len(emotion_ids))}
-    final_texts = []
-    final_labels = []
-
-    for text, label in zip(texts, labels):
-        if emotion_counts[label] < 1500:
-            final_texts.append(text)
-            final_labels.append(label)
-            emotion_counts[label] += 1
-
-    # Dataset oluştur
-    dataset_dict = {
-        'text': final_texts,
-        'labels': final_labels
-    }
+    print("Etiket haritalama tablosu:", label_mapping)  # Haritalama tablosunu yazdır
 
     # Dataset'e çevir
-    dataset = Dataset.from_dict(dataset_dict)
+    dataset = Dataset.from_pandas(df)
 
     # Train-test split
     dataset = dataset.train_test_split(test_size=0.2)
 
-    return dataset
+    return dataset, label_mapping
 
 
 def compute_metrics(pred):
@@ -73,63 +50,79 @@ def compute_metrics(pred):
 
 
 def train_model(dataset):
-    # Model ve tokenizer'ı yükle
-    model_name = "bhadresh-savani/distilbert-base-uncased-emotion"
+    model_name = "SamLowe/roberta-base-go_emotions"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    config = AutoConfig.from_pretrained(
+        model_name,
+        num_labels=10,
+        problem_type="single_label_classification"
+    )
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name,
-        num_labels=6  # 6 duygu
+        config=config,
+        ignore_mismatched_sizes=True
     )
 
-    # Tokenization fonksiyonu
     def tokenize_function(examples):
-        return tokenizer(
+        tokenized_inputs = tokenizer(
             examples['text'],
             padding='max_length',
             truncation=True,
             max_length=128
         )
+        tokenized_inputs['labels'] = examples['labels']
+        return tokenized_inputs
 
-    # Dataset'i tokenize et
-    tokenized_dataset = dataset.map(tokenize_function, batched=True)
+    tokenized_dataset = dataset.map(
+        tokenize_function,
+        batched=True,
+        remove_columns=dataset['train'].column_names
+    )
 
-    # Eğitim argümanları
     training_args = TrainingArguments(
-        output_dir="./results",
-        learning_rate=2e-5,
+        output_dir="roberta_results",
+        learning_rate=1e-5,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
-        num_train_epochs=3,
+        num_train_epochs=4,
         weight_decay=0.01,
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        load_best_model_at_end=True
+        save_total_limit=2,
+        logging_dir='./logs',
+        load_best_model_at_end=True,
+        metric_for_best_model="accuracy",
+        greater_is_better=True,
+        push_to_hub=False
     )
 
-    # Trainer'ı oluştur
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
+
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=tokenized_dataset['train'],
         eval_dataset=tokenized_dataset['test'],
-        compute_metrics=compute_metrics
+        compute_metrics=compute_metrics,
+        data_collator=data_collator
     )
 
-    # Eğitimi başlat
     print("Eğitim başlıyor...")
     trainer.train()
 
-    # Modeli kaydet
     print("Model kaydediliyor...")
-    model.save_pretrained("./fine_tuned_emotion_model")
-    tokenizer.save_pretrained("./fine_tuned_emotion_model")
+    model.save_pretrained("./fine_tuned_roberta_emotion")
+    tokenizer.save_pretrained("./fine_tuned_roberta_emotion")
 
     return trainer
 
 
 if __name__ == "__main__":
-    print("Veri seti hazırlanıyor...")
-    dataset = prepare_dataset()
+    csv_path = "balanced_emotion_dataset.csv"
+    print("CSV veri seti hazırlanıyor...")
+    dataset, label_mapping = prepare_dataset_from_csv(csv_path)
 
     print("Model eğitimi başlatılıyor...")
     trainer = train_model(dataset)
+
+    print("Model eğitimi tamamlandı.")

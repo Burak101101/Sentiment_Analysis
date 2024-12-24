@@ -1,0 +1,160 @@
+/* Base styles */
+.auth-page {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+/* Navbar styles (assuming it's in base.html) */
+.navbar {
+    background-color: #333;
+    padding: 15px 0;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.navbar-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Main content area */
+.content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+.auth-page .form-container {
+    background: #fff;
+    padding: 50px;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 650px;
+}
+
+.auth-page .form-container h2 {
+    margin-bottom: 25px;
+    text-align: center;
+    color: #333;
+    font-size: 24px;
+}
+
+/* Form styles */
+.auth-page .form-container form {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-page .form-container .form-group {
+    margin-bottom: 20px;
+}
+
+.auth-page .form-container label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+}
+
+.auth-page .form-container input[type="text"],
+.auth-page .form-container input[type="password"],
+.auth-page .form-container input[type="email"] {
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.auth-page .form-container input[type="text"]:focus,
+.auth-page .form-container input[type="password"]:focus,
+.auth-page .form-container input[type="email"]:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.auth-page .form-container button[type="submit"] {
+    background: #007bff;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 100%;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+.auth-page .form-container button[type="submit"]:hover {
+    background: #0056b3;
+}
+
+.auth-page .form-container .helptext {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Delete Account specific styles */
+.auth-page .form-container.delete-account {
+    text-align: center;
+}
+
+.auth-page .form-container.delete-account .warning-text {
+    color: #d9534f;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.auth-page .form-container.delete-account .button-group {
+    display: flex;
+    margin-top: 20px;
+}
+
+.auth-page .form-container.delete-account .delete-btn {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.auth-page .form-container.delete-account .delete-btn:hover {
+    background-color: #c9302c;
+}
+
+.auth-page .form-container.delete-account .cancel-btn {
+    background-color: #f0ad4e;
+    color: white;
+    border: none;
+    align-content: center;
+    padding: 10px 15px;
+    border-radius: 9px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    margin-left: 10px;
+}
+
+.auth-page .form-container.delete-account .cancel-btn:hover {
+    background-color: #ec971f;
+
+}
+

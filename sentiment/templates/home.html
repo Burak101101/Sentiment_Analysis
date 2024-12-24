@@ -1,15 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reddit Sentiment Analysis</title>
-</head>
-<body>
-    <h1>Reddit Sentiment Analysis</h1>
-<div class="flex-container">
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="index-profile">
+   <div class="profile-container">
+    <h1>Welcome to the Reddit Sentiment Analysis, {{ request.user.username }}</h1>
+
+    {% if user.is_authenticated %}
+        <div class="profile-info">
+            <h2>User Profile</h2>
+            <p><strong>Username:</strong> {{ user.username }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>First Name:</strong> {{ user.first_name }}</p>
+            <p><strong>Last Name:</strong> {{ user.last_name }}</p>
+        </div>
+        <a href="{% url 'users:profile' %}" class="profile">Update Profile</a>
         <a href="{% url 'index' %}" class="btn btn-primary">Enter</a>
-    
+    {% else %}
+        <p>Please log in to view your profile.</p>
+        <a href="{% url 'users:login' %}" class="btn btn-primary">Login</a>
+    {% endif %}
+    </div>
 </div>
-</body>
-</html>
+{% endblock %}

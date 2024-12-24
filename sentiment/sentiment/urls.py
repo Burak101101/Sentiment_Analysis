@@ -22,6 +22,7 @@ from . import views
 urlpatterns = [
     path('', views.index, name='home'),
     path('admin/', admin.site.urls),
+    path('user/', include('users.urls')),
     path('analysis/', include('analysis.urls')),  # analysis/analyze/<name> url oldu 2.kısım öbür urlsten geliyo
 
 ]

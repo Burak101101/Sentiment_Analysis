@@ -1,0 +1,60 @@
+<!-- templates/analysis/filter.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Reddit Duygu Analizi Filtreleme</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>İlk Subreddit</label>
+                    {{ form.subreddit_1 }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>İkinci Subreddit (Opsiyonel)</label>
+                    {{ form.subreddit_2 }}
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>Zaman Aralığı</label>
+                    {{ form.days }}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>Post Sayısı</label>
+                    {{ form.post_count }}
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>Duygu</label>
+                    {{ form.emotion }}
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>Anahtar Kelimeler</label>
+                    {{ form.keywords }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>Sıralama</label>
+                    {{ form.sort_by }}
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Analiz Et</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+.index-profile {
+        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+.index-profile .profile-container {
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        margin-top: 50px;
+        max-width: 800px;
+        margin-right: auto;
+        margin-left: auto;
+    }
+.index-profile h1 {
+        font-size: 32px;
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+.index-profile .profile-info {
+        margin-bottom: 20px;
+    }
+.index-profile .profile-info p {
+        margin-bottom: 10px;
+}
+.index-profile .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+}
+.index-profile .profile {
+        background-color: #136fe3;
+        color: #ffffff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+}
+.index-profile .profile:hover {
+        background-color: #0056b3;
+}
