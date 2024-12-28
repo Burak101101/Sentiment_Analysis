@@ -2,6 +2,7 @@
 /.idea/
 /.vscode/
 
+db.sqlite3
 
 # Python cache dosyalarını hariç tut
 __pycache__/
@@ -11,6 +12,7 @@ __pycache__/
 
 # Model checkpoint klasörlerini hariç tut
 results/checkpoint-*/
+roberta_results/checkpoint-*/
 
 # Eğitim sırasında oluşturulan büyük dosyaları hariç tut
 *.safetensors
@@ -21,6 +23,7 @@ results/checkpoint-*/
 # Model çıktıları ve geçici dosyalar
 fine_tuned_emotion_model/model.safetensors
 fine_tuned_emotion_model/training_args.bin
+fine_tuned_roberta_emotion/model.safetensors
 
 # Migrations dosyaları (sadece geliştirme aşamasında kullanılıyorsa hariç tut)
 migrations/

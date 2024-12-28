@@ -4,9 +4,13 @@ import json
 from django.contrib import messages
 from django.shortcuts import render
 from django.http import JsonResponse
+from collections import defaultdict
+
+from django.views.decorators.http import require_http_methods
 
 from .forms import SubredditFilterForm
-from .services import get_filtered_reddit_posts, analyze_sentiment
+from .services import get_filtered_reddit_posts, analyze_sentiment, process_ai_analysis
+
 
 def index(request):
     return render(request, "analysis/index.html")
@@ -32,6 +36,8 @@ def calculate_emotion_distribution(posts):
     }
 
     return emotion_percentages
+
+
 def filtered_analysis(request):
     if request.method == 'POST':
         form = SubredditFilterForm(request.POST)
@@ -40,7 +46,7 @@ def filtered_analysis(request):
             subreddit_2 = form.cleaned_data.get('subreddit_2')
             days = form.cleaned_data['days']
             post_count = form.cleaned_data['post_count']
-            emotion = form.cleaned_data.get('emotion')  # Artık opsiyonel
+            emotion = form.cleaned_data.get('emotion')
             keywords = form.cleaned_data['keywords']
             sort_by = form.cleaned_data['sort_by']
 
@@ -48,24 +54,11 @@ def filtered_analysis(request):
                 # İlk subreddit için verileri al
                 posts_1 = get_filtered_reddit_posts(subreddit_1, days, post_count, sort_by, keywords)
                 analysis_data_1 = []
-                timestamps_1 = []
-                scores_1 = []
 
-                if emotion:  # Belirli bir duygu seçildiyse
-                    # Sadece seçilen duyguya ait postları filtrele
-                    for post in posts_1:
-                        sentiment = analyze_sentiment(post["title"])
-                        if sentiment["emotion"] == emotion:
-                            analysis_data_1.append({
-                                "title": post["title"],
-                                "sentiment": sentiment,
-                                "score": post["score"],
-                                "timestamp": post["created_utc"],
-                                "num_comments": post["num_comments"]
-                            })
-                else:  # Tüm duygular için analiz yap
-                    for post in posts_1:
-                        sentiment = analyze_sentiment(post["title"])
+                for post in posts_1:
+                    sentiment = analyze_sentiment(post["title"])
+                    # Eğer emotion seçilmişse sadece o duyguyu filtrele
+                    if not emotion or sentiment["emotion"] == emotion:
                         analysis_data_1.append({
                             "title": post["title"],
                             "sentiment": sentiment,
@@ -74,8 +67,8 @@ def filtered_analysis(request):
                             "num_comments": post["num_comments"]
                         })
 
-                # Duygu dağılımını hesapla
                 emotion_distribution_1 = calculate_emotion_distribution(posts_1)
+                time_series_1 = calculate_time_series(posts_1)
 
                 context = {
                     'subreddit_1': subreddit_1,
@@ -85,17 +78,18 @@ def filtered_analysis(request):
                     'form': form,
                     'emotion_distribution_1': emotion_distribution_1,
                     'satisfaction_index_1': calculate_satisfaction_index(analysis_data_1),
+                    'time_series_1': json.dumps(time_series_1),
                 }
-                # İkinci subreddit varsa onun verilerini de al
+
+                # İkinci subreddit varsa
                 if subreddit_2:
                     posts_2 = get_filtered_reddit_posts(subreddit_2, days, post_count, sort_by, keywords)
                     analysis_data_2 = []
-                    timestamps_2 = []
-                    scores_2 = []
 
                     for post in posts_2:
                         sentiment = analyze_sentiment(post["title"])
-                        if sentiment["emotion"] == emotion:
+                        # Emotion filtresi burada da aynı şekilde uygulanmalı
+                        if not emotion or sentiment["emotion"] == emotion:
                             analysis_data_2.append({
                                 "title": post["title"],
                                 "sentiment": sentiment,
@@ -103,17 +97,16 @@ def filtered_analysis(request):
                                 "timestamp": post["created_utc"],
                                 "num_comments": post["num_comments"]
                             })
-                            timestamps_2.append(post["created_utc"])
-                            scores_2.append(sentiment["score"])
+
                     emotion_distribution_2 = calculate_emotion_distribution(posts_2)
+                    time_series_2 = calculate_time_series(posts_2)
+
                     context.update({
                         'subreddit_2': subreddit_2,
                         'analysis_data_2': analysis_data_2,
-                        'timestamps_2': json.dumps(timestamps_2),
-                        'scores_2': json.dumps(scores_2),
                         'emotion_distribution_2': emotion_distribution_2,
                         'satisfaction_index_2': calculate_satisfaction_index(analysis_data_2),
-
+                        'time_series_2': json.dumps(time_series_2),
                     })
 
                 return render(request, 'analysis/results.html', context)
@@ -149,6 +142,46 @@ def calculate_satisfaction_index(analysis_data):
     return round(satisfaction_index, 2)
 
 
+def calculate_time_series(posts):
+    """
+    Post'ları tarih bazında pozitif, negatif ve nötr olarak gruplandırır.
+    """
+    from collections import defaultdict
+    time_series = defaultdict(lambda: {"positive": 0, "negative": 0, "neutral": 0})
+
+    for post in posts:
+        try:
+            # created_utc'yi int'e çevir
+            timestamp = datetime.fromisoformat(post['created_utc']).strftime('%Y-%m-%d')
+            sentiment = analyze_sentiment(post["title"])
+            emotion = sentiment["emotion"]
+
+            if emotion in ['joy', 'love', 'gratitude', 'approval']:
+                time_series[timestamp]["positive"] += 1
+            elif emotion in ['anger', 'sadness', 'disappointment', 'disapproval']:
+                time_series[timestamp]["negative"] += 1
+            else:
+                time_series[timestamp]["neutral"] += 1
+        except (ValueError, TypeError) as e:
+            print(f"Zaman damgası hatası: {post['created_utc']} - {e}")
+
+    # Tarihe göre sırala
+    sorted_series = sorted(time_series.items())
+
+    # Grafik için verileri formatla
+    dates = [str(date) for date, _ in sorted_series]
+    positive = [data["positive"] for _, data in sorted_series]
+    negative = [data["negative"] for _, data in sorted_series]
+    neutral = [data["neutral"] for _, data in sorted_series]
+
+    return {
+        "dates": dates,
+        "positive": positive,
+        "negative": negative,
+        "neutral": neutral
+    }
+
+
 def compare_subreddits_page(request):
     if request.method == "POST":
         subreddit_1 = request.POST.get("subreddit_1")
@@ -177,5 +210,20 @@ def compare_subreddits_page(request):
             },
         )
     return render(request, "analysis/compare.html")
+
+@require_http_methods(["POST"])
+def ai_analysis(request):
+    try:
+        data = json.loads(request.body)
+        analysis_result = process_ai_analysis(data)
+        return JsonResponse(
+            {'status': 'success',
+             'analysis': analysis_result
+             })
+    except Exception as e:
+        return JsonResponse(
+            {'status': 'error',
+             'message': str(e)
+             }, status=500)
 
 

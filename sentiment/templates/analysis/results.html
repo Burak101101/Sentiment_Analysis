@@ -1,4 +1,3 @@
-<!-- templates/analysis/filtered_results.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +33,7 @@
                         {% for item in analysis_data_1 %}
                         <tr>
                             <td>{{ item.title }}</td>
-                            <td>{{ item.sentiment.emotion_tr }}</td>
+                            <td>{{ item.sentiment.emotion }}</td>
                             <td>{{ item.sentiment.score|floatformat:2 }}</td>
                             <td>{{ item.score }}</td>
                             <td>{{ item.num_comments }}</td>
@@ -72,7 +71,7 @@
                         {% for item in analysis_data_2 %}
                         <tr>
                             <td>{{ item.title }}</td>
-                            <td>{{ item.sentiment.emotion_tr }}</td>
+                            <td>{{ item.sentiment.emotion }}</td>
                             <td>{{ item.sentiment.score|floatformat:2 }}</td>
                             <td>{{ item.score }}</td>
                             <td>{{ item.num_comments }}</td>
@@ -88,121 +87,306 @@
             </div>
         </div>
         {% endif %}
-    <!-- Duygu Dağılımı Grafiği -->
-{% if not emotion %}
-<div class="card mb-4">
-    <div class="card-header">
-        <h2>Duygu Dağılımı</h2>
-    </div>
-    <div class="card-body">
-        <div id="emotion-distribution-chart" style="width: 100%; height: 400px;"></div>
-    </div>
-</div>
 
-<script>
-    var emotions_1 = Object.keys({{ emotion_distribution_1|safe }});
-    var percentages_1 = Object.values({{ emotion_distribution_1|safe }});
+    {% if not emotion %}
+        <!-- Duygu Dağılımı Grafiği -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Duygu Dağılımı</h2>
+            </div>
+            <div class="card-body">
+                <div id="emotion-distribution-chart" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
 
-    var data = [{
-        type: 'bar',
-        x: emotions_1,
-        y: percentages_1,
-        name: '{{ subreddit_1 }}',
-        marker: {color: 'blue'}
-    }];
+        <!-- Zaman Serisi Grafikleri -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>{{ subreddit_1 }} Zaman Serisi Analizi</h2>
+            </div>
+            <div class="card-body">
+                <div id="time-series-chart-1" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
 
-    {% if subreddit_2 %}
-    var emotions_2 = Object.keys({{ emotion_distribution_2|safe }});
-    var percentages_2 = Object.values({{ emotion_distribution_2|safe }});
+        {% if subreddit_2 %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>{{ subreddit_2 }} Zaman Serisi Analizi</h2>
+            </div>
+            <div class="card-body">
+                <div id="time-series-chart-2" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+        {% endif %}
 
-    data.push({
-        type: 'bar',
-        x: emotions_2,
-        y: percentages_2,
-        name: '{{ subreddit_2 }}',
-        marker: {color: 'red'}
-    });
+        <!-- Memnuniyet Endeksi -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Memnuniyet Endeksi</h2>
+            </div>
+            <div class="card-body">
+                <div id="satisfaction-chart" style="width: 100%; height: 300px;"></div>
+            </div>
+        </div>
+
+        <script>
+            // Duygu dağılımı grafiği
+            var emotions_1 = Object.keys({{ emotion_distribution_1|safe }});
+            var percentages_1 = Object.values({{ emotion_distribution_1|safe }});
+
+            var data = [{
+                type: 'bar',
+                x: emotions_1,
+                y: percentages_1,
+                name: '{{ subreddit_1 }}',
+                marker: {color: 'blue'}
+            }];
+
+            {% if subreddit_2 %}
+            var emotions_2 = Object.keys({{ emotion_distribution_2|safe }});
+            var percentages_2 = Object.values({{ emotion_distribution_2|safe }});
+
+            data.push({
+                type: 'bar',
+                x: emotions_2,
+                y: percentages_2,
+                name: '{{ subreddit_2 }}',
+                marker: {color: 'red'}
+            });
+            {% endif %}
+
+            var layout = {
+                title: 'Duygu Dağılımı (%)',
+                barmode: 'group',
+                xaxis: {title: 'Duygular'},
+                yaxis: {title: 'Yüzde (%)', range: [0, 100]}
+            };
+
+            Plotly.newPlot('emotion-distribution-chart', data, layout);
+
+            // Zaman serisi grafikleri
+            var timeSeries1 = {{ time_series_1|safe }};
+            var timeSeriesData1 = [
+                {
+                    x: timeSeries1.dates,
+                    y: timeSeries1.positive,
+                    type: 'scatter',
+                    name: 'Pozitif',
+                    line: { color: '#2ecc71', width: 3 }
+                },
+                {
+                    x: timeSeries1.dates,
+                    y: timeSeries1.negative,
+                    type: 'scatter',
+                    name: 'Negatif',
+                    line: { color: '#e74c3c', width: 3 }
+                },
+                {
+                    x: timeSeries1.dates,
+                    y: timeSeries1.neutral,
+                    type: 'scatter',
+                    name: 'Nötr',
+                    line: { color: '#3498db', width: 3 }
+                }
+            ];
+
+            var timeSeriesLayout1 = {
+                xaxis: { title: 'Tarih' },
+                yaxis: { title: 'Post Sayısı' },
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot('time-series-chart-1', timeSeriesData1, timeSeriesLayout1);
+
+            {% if subreddit_2 %}
+            var timeSeries2 = {{ time_series_2|safe }};
+            var timeSeriesData2 = [
+                {
+                    x: timeSeries2.dates,
+                    y: timeSeries2.positive,
+                    type: 'scatter',
+                    name: 'Pozitif',
+                    line: { color: '#2ecc71', width: 3 }
+                },
+                {
+                    x: timeSeries2.dates,
+                    y: timeSeries2.negative,
+                    type: 'scatter',
+                    name: 'Negatif',
+                    line: { color: '#e74c3c', width: 3 }
+                },
+                {
+                    x: timeSeries2.dates,
+                    y: timeSeries2.neutral,
+                    type: 'scatter',
+                    name: 'Nötr',
+                    line: { color: '#3498db', width: 3 }
+                }
+            ];
+
+            var timeSeriesLayout2 = {
+                xaxis: { title: 'Tarih' },
+                yaxis: { title: 'Post Sayısı' },
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot('time-series-chart-2', timeSeriesData2, timeSeriesLayout2);
+            {% endif %}
+
+            // Memnuniyet endeksi grafiği
+            var satisfactionData = [{
+                type: 'indicator',
+                mode: 'gauge+number',
+                value: {{ satisfaction_index_1 }},
+                title: { text: '{{ subreddit_1 }} Memnuniyet Endeksi' },
+                domain: { row: 0, column: 0 },
+                gauge: {
+                    axis: { range: [-100, 100] },
+                    bar: { color: "darkblue" },
+                    bgcolor: "white",
+                    borderwidth: 2,
+                    bordercolor: "gray",
+                    steps: [
+                        { range: [-100, -50], color: "red" },
+                        { range: [-50, 0], color: "orange" },
+                        { range: [0, 50], color: "lightgreen" },
+                        { range: [50, 100], color: "green" }
+                    ]
+                }
+            }];
+
+            {% if subreddit_2 %}
+            satisfactionData.push({
+                type: 'indicator',
+                mode: 'gauge+number',
+                value: {{ satisfaction_index_2 }},
+                title: { text: '{{ subreddit_2 }} Memnuniyet Endeksi' },
+                domain: { row: 0, column: 1 },
+                gauge: {
+                    axis: { range: [-100, 100] },
+                    bar: { color: "darkred" },
+                    bgcolor: "white",
+                    borderwidth: 2,
+                    bordercolor: "gray",
+                    steps: [
+                        { range: [-100, -50], color: "red" },
+                        { range: [-50, 0], color: "orange" },
+                        { range: [0, 50], color: "lightgreen" },
+                        { range: [50, 100], color: "green" }
+                    ]
+                }
+            });
+            {% endif %}
+
+            var satisfactionLayout = {
+                grid: { rows: 1, columns: {% if subreddit_2 %}2{% else %}1{% endif %}, pattern: 'independent' },
+                width: 1000,
+                height: 300,
+                margin: { t: 25, b: 25, l: 25, r: 25 }
+            };
+
+            Plotly.newPlot('satisfaction-chart', satisfactionData, satisfactionLayout);
+        </script>
     {% endif %}
 
-    var layout = {
-        title: 'Duygu Dağılımı (%)',
-        barmode: 'group',
-        xaxis: {title: 'Duygular'},
-        yaxis: {title: 'Yüzde (%)', range: [0, 100]}
-    };
-
-    Plotly.newPlot('emotion-distribution-chart', data, layout);
-</script>
-{% endif %}
-
-{% if not emotion %}
-
-       <div class="card mb-4">
-    <div class="card-header">
-        <h2>Memnuniyet Endeksi</h2>
-    </div>
-    <div class="card-body">
-        <div id="satisfaction-chart" style="width: 100%; height: 300px;"></div>
-    </div>
-</div>
-
-<script>
-    // Memnuniyet endeksi grafiği
-    var satisfactionData = [{
-        type: 'indicator',
-        mode: 'gauge+number',
-        value: {{ satisfaction_index_1 }},
-        title: { text: '{{ subreddit_1 }} Memnuniyet Endeksi' },
-        gauge: {
-            axis: { range: [-100, 100] },
-            bar: { color: "darkblue" },
-            bgcolor: "white",
-            borderwidth: 2,
-            bordercolor: "gray",
-            steps: [
-                { range: [-100, -50], color: "red" },
-                { range: [-50, 0], color: "orange" },
-                { range: [0, 50], color: "lightgreen" },
-                { range: [50, 100], color: "green" }
-            ],
-        }
-    }];
-
-    {% if subreddit_2 %}
-    satisfactionData.push({
-        type: 'indicator',
-        mode: 'gauge+number',
-        value: {{ satisfaction_index_2 }},
-        title: { text: '{{ subreddit_2 }} Memnuniyet Endeksi' },
-        gauge: {
-            axis: { range: [-100, 100] },
-            bar: { color: "darkred" },
-            bgcolor: "white",
-            borderwidth: 2,
-            bordercolor: "gray",
-            steps: [
-                { range: [-100, -50], color: "red" },
-                { range: [-50, 0], color: "orange" },
-                { range: [0, 50], color: "lightgreen" },
-                { range: [50, 100], color: "green" }
-            ],
-        }
-    });
-    {% endif %}
-
-    var satisfactionLayout = {
-        grid: { rows: 1, columns: {% if subreddit_2 %}2{% else %}1{% endif %}, pattern: 'independent' },
-        width: 1000,
-        height: 300
-    };
-
-    Plotly.newPlot('satisfaction-chart', satisfactionData, satisfactionLayout);
-</script>
-{% endif %}
+        <!-- AI Analiz Butonu ve Sonuç Alanı -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2>AI Analizi</h2>
+                <button id="analyzeWithAI" class="btn btn-success" onclick="startAIAnalysis()">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    Analyze with AI
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="aiAnalysisResult" class="d-none">
+                    <div class="alert alert-info mb-3">
+                        <h4 class="alert-heading">AI Analiz Raporu</h4>
+                        <div id="aiAnalysisContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="mb-4">
             <a href="{% url 'filter' %}" class="btn btn-primary">Yeni Analiz</a>
         </div>
+
+        <script>
+        async function startAIAnalysis() {
+            const button = document.getElementById('analyzeWithAI');
+            const spinner = button.querySelector('.spinner-border');
+            const resultDiv = document.getElementById('aiAnalysisResult');
+            const contentDiv = document.getElementById('aiAnalysisContent');
+
+            // Buton durumunu güncelle
+            button.disabled = true;
+            spinner.classList.remove('d-none');
+
+            try {
+                // Mevcut analiz verilerini topla
+                const analysisData = {
+                    subreddit_1: '{{ subreddit_1 }}',
+                    subreddit_2: '{{ subreddit_2 }}',
+                    emotion_distribution_1: {{ emotion_distribution_1|safe }},
+                    {% if subreddit_2 %}
+                    emotion_distribution_2: {{ emotion_distribution_2|safe }},
+                    {% endif %}
+                    time_series_1: {{ time_series_1|safe }},
+                    {% if subreddit_2 %}
+                    time_series_2: {{ time_series_2|safe }},
+                    {% endif %}
+                    days: {{ days }},
+                };
+
+                // AI analizi için backend'e istek at
+                const response = await fetch('{% url "ai_analysis" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(analysisData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const result = await response.json();
+
+                // Sonucu göster
+                contentDiv.innerHTML = result.analysis;
+                resultDiv.classList.remove('d-none');
+
+            } catch (error) {
+                console.error('Error:', error);
+                contentDiv.innerHTML = 'An error occurred while generating the AI analysis.';
+                resultDiv.classList.remove('d-none');
+            } finally {
+                // Buton durumunu resetle
+                button.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        }
+
+        // CSRF token'ı almak için yardımcı fonksiyon
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        </script>
     </div>
 </body>
 </html>
