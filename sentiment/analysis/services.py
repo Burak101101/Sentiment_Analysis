@@ -10,6 +10,8 @@ from decouple import config
 import google.generativeai as genai
 from googleapiclient.discovery import build
 from gnews import GNews
+import markdown2  # Markdown -> HTML dönüşümü için
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
@@ -227,7 +229,18 @@ def analyze_with_gemini(data, news_articles):
     # Analiz verilerini formatlama
     prompt = f"""
     Sen bir veri analisti ve topluluk yöneticisisin. Aşağıdaki Reddit topluluğu/topluluklarının son {data['days']} günlük analiz verilerini ve ilgili haberleri inceleyerek kapsamlı bir rapor hazırlamalısın.
+    
+    Raporu **yalnızca HTML formatında** oluştur. Başka bir format kullanma.
 
+    Kullanılacak HTML yapısı:
+    <section>
+      <h3></h3>
+      <p></p>
+      <ul>
+        <li></li>
+      </ul>
+    </section>
+    
     Subreddit(ler):
     - {data['subreddit_1']}
     {f"- {data['subreddit_2']}" if 'subreddit_2' in data else ""}
@@ -256,12 +269,19 @@ def analyze_with_gemini(data, news_articles):
     - Topluluk tepkilerini haberlerle ilişkilendir
     - Belirgin trendleri vurgula
 
-    Raporunu HTML formatında, başlıklar ve paragraflar halinde yapılandır. 
-    Lütfen raporunda <section>, <h3>, <p>, <ul>, <li> gibi HTML etiketlerini kullan.
+    Çıktıyı HTML formatında üret ve şu şekilde yapılandır:
+    - <h3> başlıklar </h3>
+    - <p> açıklamalar </p>
+    - <ul> <li> maddeler </li> </ul>
+    Her paragrafın altında uygun şekilde açıklamalar ekle.
     Önemli bulguları <strong> etiketi ile vurgula.
     """
 
     response = model.generate_content(prompt)
+
+    # Gelen yanıtı Markdown'dan HTML'ye çevir (arada bozuk gelmesin diye)
+    html_content = markdown2.markdown(response.text)
+
 
     # HTML formatını güzelleştir ve Bootstrap sınıfları ekle
     formatted_response = f"""
@@ -270,7 +290,7 @@ def analyze_with_gemini(data, news_articles):
             <h3 class="alert-heading mb-3">AI Analiz Raporu</h3>
             <p class="mb-0"><small>Bu rapor, son {data['days']} günlük Reddit verileri ve güncel haberler analiz edilerek oluşturulmuştur.</small></p>
         </div>
-        {response.text}
+        {html_content}
     </div>
     """
 

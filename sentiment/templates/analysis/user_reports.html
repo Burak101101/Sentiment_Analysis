@@ -1,0 +1,48 @@
+<!-- templates/analysis/user_reports.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Analiz Raporlarım</h1>
+
+    {% if reports %}
+        <div class="row">
+            {% for report in reports %}
+                <div class="col-md-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{{ report }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Analiz Tarihi:</strong> {{ report.created_at|date:"d/m/Y H:i" }}<br>
+                                <strong>Analiz Süresi:</strong> Son {{ report.days_analyzed }} gün
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button class="btn btn-primary" type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#report{{ report.id }}">
+                                    Raporu Görüntüle
+                                </button>
+                                <a href="{% url 'download_report_pdf' report.id %}"
+                                   class="btn btn-success">
+                                    <i class="bi bi-download"></i> PDF İndir
+                                </a>
+                            </div>
+                            <div class="collapse mt-3" id="report{{ report.id }}">
+                                <div class="card card-body">
+                                    {{ report.content|safe }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            Henüz analiz raporu bulunmuyor.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

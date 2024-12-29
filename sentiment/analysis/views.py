@@ -1,19 +1,17 @@
+import traceback
 from datetime import datetime, timedelta
 import json
-
 from django.contrib import messages
 from django.shortcuts import render
 from django.http import JsonResponse
 from collections import defaultdict
-
 from django.views.decorators.http import require_http_methods
-
 from .forms import SubredditFilterForm
 from .services import get_filtered_reddit_posts, analyze_sentiment, process_ai_analysis
-
-
-def index(request):
-    return render(request, "analysis/index.html")
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from .models import AIReport
+from .utils import generate_pdf_report
 
 # views.py
 
@@ -211,19 +209,87 @@ def compare_subreddits_page(request):
         )
     return render(request, "analysis/compare.html")
 
-@require_http_methods(["POST"])
+@login_required
 def ai_analysis(request):
     try:
+        # Request body'yi parse et
         data = json.loads(request.body)
-        analysis_result = process_ai_analysis(data)
-        return JsonResponse(
-            {'status': 'success',
-             'analysis': analysis_result
-             })
-    except Exception as e:
-        return JsonResponse(
-            {'status': 'error',
-             'message': str(e)
-             }, status=500)
 
+        # Veri validasyonu
+        if not data.get('subreddit_1'):
+            raise ValueError("Primary subreddit is required")
+
+        # AI analizi yap
+        analysis_result = process_ai_analysis(data)
+
+        # Başarılı analiz sonucunu veritabanına kaydet
+        report = None
+        try:
+            report = AIReport.objects.create(
+                user=request.user,
+                subreddit_1=data['subreddit_1'],
+                subreddit_2=data.get('subreddit_2', ''),
+                content=analysis_result,
+                days_analyzed=data['days'],
+                emotion_data={
+                    'subreddit_1': data.get('emotion_distribution_1', {}),
+                    'subreddit_2': data.get('emotion_distribution_2', {})
+                },
+                time_series_data={
+                    'subreddit_1': data.get('time_series_1', {}),
+                    'subreddit_2': data.get('time_series_2', {})
+                },
+                news_data={}
+            )
+        except Exception as e:
+            print(f"Error saving report: {str(e)}")
+            # Rapor kaydedilemese bile analizi göster
+
+        return JsonResponse({
+            'status': 'success',
+            'analysis': analysis_result,
+            'report_id': report.id if report else None
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        }, status=400)
+
+    except ValueError as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+    except Exception as e:
+        print(f"Unexpected error in ai_analysis: {str(e)}")
+        print(traceback.format_exc())  # Detaylı hata log'u
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An unexpected error occurred. Please try again later.'
+        }, status=500)
+
+@login_required
+def user_reports(request):
+    """Kullanıcının geçmiş raporlarını gösterir"""
+    reports = AIReport.objects.filter(user=request.user)
+    return render(request, 'analysis/user_reports.html', {'reports': reports})
+
+
+@login_required
+def download_report_pdf(request, report_id):
+    """Raporu PDF olarak indirir"""
+    try:
+        report = AIReport.objects.get(id=report_id, user=request.user)
+        pdf = generate_pdf_report(report)
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"report_{report.id}_{report.created_at.strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        return response
+    except AIReport.DoesNotExist:
+        return HttpResponse('Report not found', status=404)
 
