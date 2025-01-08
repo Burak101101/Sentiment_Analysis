@@ -3,7 +3,7 @@
 /.vscode/
 
 *.sqlite3
-
+uml
 # Python cache dosyalarını hariç tut
 __pycache__/
 *.pyc

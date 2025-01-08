@@ -12,7 +12,6 @@ from googleapiclient.discovery import build
 from gnews import GNews
 import markdown2  # Markdown -> HTML dönüşümü için
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 
@@ -35,58 +34,96 @@ label_mapping = {
     'LABEL_6': 'gratitude',
     'LABEL_7': 'approval',
     'LABEL_8': 'disapproval',
-    'LABEL_9': 'neutral'
+    'LABEL_9': 'neutral',
+    'LABEL_10': 'curiosity'
+}
+emotion_groups = {
+    'positive': {'joy', 'love', 'gratitude', 'approval', 'surprise', 'curiosity'},
+    'negative': {'anger', 'sadness', 'disappointment', 'disapproval'},
+    'neutral': {'neutral'}
 }
 
 
 # services.py
-def get_filtered_reddit_posts(subreddit_name, days=30, post_count=50, sort_by='score', keywords=None):
+def get_filtered_reddit_posts(subreddit_name, days=30, post_count=50, sort_by='score', keywords=None,
+                              emotion_group=None):
     reddit = praw.Reddit(
         client_id=os.getenv('CLIENT_ID'),
         client_secret=os.getenv('CLIENT_SECRET'),
         user_agent=os.getenv('USER_AGENT')
     )
 
+    positive_emotions = ['joy', 'love', 'gratitude', 'approval', 'curiosity', 'surprise']
+    negative_emotions = ['anger', 'sadness', 'disappointment', 'disapproval']
+
     subreddit = reddit.subreddit(subreddit_name)
     posts = []
-
-    # Time filter için timestamp hesapla
     time_filter = datetime.now() - timedelta(days=int(days))
+    post_limit = min(post_count * 2, 100)  # Limit maximum posts fetched
 
-    # Daha fazla post al
-    post_limit = post_count * 4  # İstenen sayının 4 katı kadar post al
+    try:
+        for post in subreddit.hot(limit=post_limit):
+            try:
+                post_time = datetime.fromtimestamp(post.created_utc)
 
-    # Farklı sıralama metodlarını dene
-    for post in subreddit.hot(limit=post_limit):
-        post_time = datetime.fromtimestamp(post.created_utc)
+                if post_time < time_filter:
+                    continue
 
-        # Zaman kontrolü
-        if post_time < time_filter:
-            continue
+                if keywords:
+                    keyword_list = [k.strip() for k in keywords.split(',')]
+                    if not any(keyword.lower() in post.title.lower() or
+                               (hasattr(post, 'selftext') and keyword.lower() in post.selftext.lower())
+                               for keyword in keyword_list):
+                        continue
 
-        # Keyword kontrolü
-        if keywords:
-            keyword_list = [k.strip() for k in keywords.split(',')]
-            if not any(keyword.lower() in post.title.lower() or
-                       (hasattr(post, 'selftext') and keyword.lower() in post.selftext.lower())
-                       for keyword in keyword_list):
+                # En çok oy alan yorumu al ve analiz et
+                post.comments.replace_more(limit=0)
+                if not hasattr(post, 'comments') or len(post.comments) == 0:
+                    continue
+
+                top_comment = None
+                try:
+                    top_comment = max(post.comments, key=lambda x: x.score if hasattr(x, 'score') else 0)
+                    if not hasattr(top_comment, 'body') or not top_comment.body.strip():
+                        continue
+                except Exception as comment_error:
+                    print(f"Comment processing error: {str(comment_error)}")
+                    continue
+
+                # Yorum analizi
+                comment_sentiment = analyze_sentiment(top_comment.body)
+
+                post_dict = {
+                    "title": post.title,
+                    "score": getattr(post, 'score', 0),
+                    "created_utc": post_time.isoformat(),
+                    "num_comments": getattr(post, 'num_comments', 0),
+                    "text": post.selftext if hasattr(post, 'selftext') else "",
+                    "top_comment": {
+                        "text": top_comment.body,
+                        "score": getattr(top_comment, 'score', 0),
+                        "sentiment": comment_sentiment
+                    }
+                }
+                posts.append(post_dict)
+
+            except Exception as e:
+                print(f"Error processing post: {str(e)}")
                 continue
 
-        # Post nesnesini dictionary'e çevir
-        post_dict = {
-            "title": post.title,
-            "score": post.score,
-            "created_utc": datetime.fromtimestamp(post.created_utc).isoformat(),
-            "num_comments": post.num_comments,
-            "text": post.selftext if hasattr(post, 'selftext') else ""
-        }
-        posts.append(post_dict)
+        # Sort ve limit uygula
+        if sort_by == 'score':
+            posts.sort(key=lambda x: x['score'], reverse=True)
+        elif sort_by == 'num_comments':
+            posts.sort(key=lambda x: x['num_comments'], reverse=True)
+        elif sort_by == 'created_utc':
+            posts.sort(key=lambda x: x['created_utc'], reverse=True)
 
-    # Sıralama
-    posts.sort(key=lambda x: x[sort_by], reverse=True)
+        return posts[:post_count]
 
-    # İstenilen sayıda post döndür
-    return posts[:post_count]
+    except Exception as e:
+        print(f"Error fetching posts from subreddit {subreddit_name}: {str(e)}")
+        return []
 
 
 def analyze_sentiment(text):
@@ -100,6 +137,11 @@ def analyze_sentiment(text):
     text = text.lower()
 
     # Genişletilmiş anahtar kelime setleri
+    curiosity_words = {
+        'wonder', 'curious', 'interested', 'fascinating', 'intriguing',
+        'how', 'what if', 'why', 'tell me more', 'anyone know', '?'
+    }
+
     anger_words = {
         'ruined', 'terrible', 'awful', 'hate', 'worst', 'garbage', 'trash',
         'pathetic', 'useless', 'horrible'
@@ -147,6 +189,8 @@ def analyze_sentiment(text):
             emotion = 'love'
         elif any(word in text for word in surprise_words):
             emotion = 'surprise'
+        elif any(word in text for word in curiosity_words):
+            emotion = 'curiosity'
 
         # İkinci tahmin kontrolü
         elif len(results) > 1:
@@ -178,7 +222,20 @@ def analyze_sentiment(text):
         "all_predictions": [{"emotion": label_mapping[r['label']], "score": r['score']} for r in results[:3]]
     }
 
+class EmotionGroups:
+    POSITIVE = ['joy', 'love', 'gratitude', 'approval', 'curiosity']
+    NEGATIVE = ['anger', 'sadness', 'disappointment', 'disapproval']
+    NEUTRAL = ['neutral', 'surprise']
 
+    @classmethod
+    def get_emotions_by_group(cls, group):
+        if group == 'positive':
+            return cls.POSITIVE
+        elif group == 'negative':
+            return cls.NEGATIVE
+        elif group == 'neutral':
+            return cls.NEUTRAL
+        return cls.POSITIVE + cls.NEGATIVE + cls.NEUTRAL
 def get_news_articles(subreddit, days):
     """GNews API'den ilgili haberleri çeker"""
     api_key = os.getenv('GNEWS_API_KEY')
@@ -229,7 +286,7 @@ def analyze_with_gemini(data, news_articles):
     # Analiz verilerini formatlama
     prompt = f"""
     Sen bir veri analisti ve topluluk yöneticisisin. Aşağıdaki Reddit topluluğu/topluluklarının son {data['days']} günlük analiz verilerini ve ilgili haberleri inceleyerek kapsamlı bir rapor hazırlamalısın.
-    
+
     Raporu **yalnızca HTML formatında** oluştur. Başka bir format kullanma.
 
     Kullanılacak HTML yapısı:
@@ -240,7 +297,7 @@ def analyze_with_gemini(data, news_articles):
         <li></li>
       </ul>
     </section>
-    
+
     Subreddit(ler):
     - {data['subreddit_1']}
     {f"- {data['subreddit_2']}" if 'subreddit_2' in data else ""}
@@ -281,7 +338,6 @@ def analyze_with_gemini(data, news_articles):
 
     # Gelen yanıtı Markdown'dan HTML'ye çevir (arada bozuk gelmesin diye)
     html_content = markdown2.markdown(response.text)
-
 
     # HTML formatını güzelleştir ve Bootstrap sınıfları ekle
     formatted_response = f"""

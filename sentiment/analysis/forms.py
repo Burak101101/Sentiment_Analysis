@@ -18,7 +18,8 @@ class SubredditFilterForm(forms.Form):
             (30, 'Son 30 gün'),
             (90, 'Son 90 gün'),
         ],
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        initial=30
     )
     post_count = forms.IntegerField(
         min_value=1,
@@ -28,21 +29,14 @@ class SubredditFilterForm(forms.Form):
     )
     emotion = forms.ChoiceField(
         choices=[
-            ('', 'Tüm Duygular'),  # Boş seçenek eklendi
-            ('anger', 'Kızgın'),
-            ('joy', 'Mutlu'),
-            ('sadness', 'Üzgün'),
-            ('disappointment', 'Hayal Kırıklığı'),
-            ('love', 'Sevgi'),
-            ('surprise', 'Şaşkınlık'),
-            ('gratitude', 'Minnettarlık'),
-            ('approval', 'Onaylama'),
-            ('disapproval', 'Onaylamama'),
-            ('neutral', 'Nötr'),
+            ('', 'Tüm Duygular'),
+            ('positive', 'Pozitif'),
+            ('negative', 'Negatif'),
         ],
-        required=False,  # Opsiyonel yaptık
+        required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+
     keywords = forms.CharField(
         max_length=200,
         required=False,
@@ -57,5 +51,6 @@ class SubredditFilterForm(forms.Form):
             ('created_utc', 'En yeni'),
             ('num_comments', 'En çok yorum alan'),
         ],
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        initial='score'
     )

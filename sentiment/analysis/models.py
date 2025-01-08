@@ -20,3 +20,18 @@ class AIReport(models.Model):
         if self.subreddit_2:
             return f"Analysis of r/{self.subreddit_1} and r/{self.subreddit_2} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
         return f"Analysis of r/{self.subreddit_1} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+class UserText(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()  # Kullanıcının girdiği metin
+    sentiment_score = models.FloatField()  # Duygu analizi skoru
+    created_at = models.DateTimeField(auto_now_add=True)
+    emotion_data = models.JSONField(null=True, blank=True)  # Detaylı duygu analizi verileri (opsiyonel)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "User Text Analysis"
+        verbose_name_plural = "User Text Analyses"
+
+    def __str__(self):
+        return f"{self.user.username}'s text - {self.created_at.strftime('%Y-%m-%d %H:%M')}"

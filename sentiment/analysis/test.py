@@ -1,4 +1,5 @@
 # test_new_model.py
+from sklearn.metrics import accuracy_score
 from transformers import pipeline
 
 emotion_analysis = pipeline(
@@ -126,30 +127,38 @@ def analyze_sentiment(text):
     }
 
 
-test_cases = [
-    # Önceki test vakaları
-    "This game is absolutely amazing, best purchase ever!",  # joy
-    "They completely ruined the game with this update!",  # anger (önceden disappointment'tı)
-    "I miss playing this game with my old friends",  # sadness (önceden approval'dı)
-    "The graphics aren't as good as promised",  # disapproval (önceden approval'dı)
-    "This community is so supportive and caring",  # love/joy
-    "I can't believe they're releasing it tomorrow!",  # surprise
-    "Thanks for all the help with the difficult level",  # gratitude (önceden joy'du)
-    "This new feature is exactly what we needed",  # approval
-    "This change makes no sense at all",  # disapproval
-    "It's just another regular update",  # neutral
 
-    # Yeni test vakaları
-    "I hate this update so much!",  # anger
-    "Thank you for the amazing support!",  # gratitude
-    "Unfortunately, I lost all my progress",  # sadness
-    "This is the worst game ever!",  # anger
-    "The customer service is terrible"  # disapproval
+test_cases = [
+    {"text": "This game is absolutely amazing, best purchase ever!", "true_label": "joy"},
+    {"text": "They completely ruined the game with this update!", "true_label": "anger"},
+    {"text": "I miss playing this game with my old friends", "true_label": "sadness"},
+    {"text": "The graphics aren't as good as promised", "true_label": "disapproval"},
+    {"text": "This community is so supportive and caring", "true_label": "love"},
+    {"text": "I can't believe they're releasing it tomorrow!", "true_label": "surprise"},
+    {"text": "Thanks for all the help with the difficult level", "true_label": "gratitude"},
+    {"text": "This new feature is exactly what we needed", "true_label": "approval"},
+    {"text": "This change makes no sense at all", "true_label": "disapproval"},
+    {"text": "It's just another regular update", "true_label": "neutral"},
+    {"text": "I hate this update so much!", "true_label": "anger"},
+    {"text": "Thank you for the amazing support!", "true_label": "gratitude"},
+    {"text": "Unfortunately, I lost all my progress", "true_label": "sadness"},
+    {"text": "This is the worst game ever!", "true_label": "anger"},
+    {"text": "The customer service is terrible", "true_label": "disapproval"}
 ]
 
-print("\nTest Sonuçları:")
-for text in test_cases:
+# Tahmin edilen ve gerçek etiketleri listeleyin
+predicted_labels = []
+true_labels = []
+
+for case in test_cases:
+    text = case["text"]
+    true_label = case["true_label"]
     result = analyze_sentiment(text)
-    print(f"\nText: {text}")
-    print(f"Tahmin: {result['emotion']} ({result['emotion_tr']})")
-    print(f"Güven Skoru: {result['score']:.2f}")
+    predicted_label = result["emotion"]
+
+    predicted_labels.append(predicted_label)
+    true_labels.append(true_label)
+
+# Doğruluk skorunu hesaplayın
+accuracy = accuracy_score(true_labels, predicted_labels)
+print(f"\nModel Accuracy: {accuracy:.2f}")

@@ -16,11 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-
-from . import views
+from analysis import views
 
 urlpatterns = [
-    path('', views.index, name='home'),
+    path('', views.dashboard, name='home'),
     path('admin/', admin.site.urls),
     path('user/', include('users.urls')),
     path('analysis/', include('analysis.urls')),  # analysis/analyze/<name> url oldu 2.kısım öbür urlsten geliyo

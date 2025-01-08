@@ -7,6 +7,122 @@
     <title>Analysis Results</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+/* Tablo container stilleri */
+.table-container {
+    padding: 0;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+/* Sticky header */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+}
+
+.sticky-header th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Yorum container stilleri */
+.comment-container {
+    max-width: 100%;
+}
+
+.comment-text {
+    max-height: 100px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+}
+
+.comment-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+}
+
+.comment-sentiment {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.comment-score {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+/* Scrollbar stilleri */
+.table-responsive::-webkit-scrollbar,
+.comment-text::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track,
+.comment-text::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb,
+.comment-text::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.comment-text::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Tablo hover efekti */
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.075);
+}
+
+/* Badge stilleri */
+.badge {
+    padding: 5px 8px;
+    font-weight: 500;
+}
+.sticky-top {
+    z-index: 100;
+}
+
+@media (max-width: 768px) {
+    .sticky-top {
+        position: static !important;
+    }
+}
+
+/* Responsive düzenlemeler */
+@media (max-width: 768px) {
+    .table-responsive {
+        max-height: 400px;
+    }
+
+    .comment-text {
+        max-height: 80px;
+    }
+
+}
+</style>
 
     <div class="container mt-4">
         <h1>Analiz Sonuçları</h1>
@@ -17,37 +133,59 @@
                 <h2>{{ subreddit_1 }} Analizi</h2>
                 <p>Seçilen Duygu: {{ emotion }} | Zaman Aralığı: Son {{ days }} gün</p>
             </div>
-            <div class="card-body">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Başlık</th>
-                            <th>Duygu</th>
-                            <th>Güven Skoru</th>
-                            <th>Oy</th>
-                            <th>Yorum Sayısı</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% if analysis_data_1 %}
-                        {% for item in analysis_data_1 %}
-                        <tr>
-                            <td>{{ item.title }}</td>
-                            <td>{{ item.sentiment.emotion }}</td>
-                            <td>{{ item.sentiment.score|floatformat:2 }}</td>
-                            <td>{{ item.score }}</td>
-                            <td>{{ item.num_comments }}</td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center">Seçilen kriterlere uygun post bulunamadı.</td>
-                        </tr>
-                    {% endif %}
-                    </tbody>
-                </table>
+            <div class="card-body table-container">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="sticky-header">
+                                <tr>
+                                    <th>Başlık</th>
+                                    <th style="width: 30%;">En İyi Yorum</th>
+                                    <th>Oy</th>
+                                    <th>Yorum Sayısı</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% if analysis_data_1 %}
+                                {% for item in analysis_data_1 %}
+                                <tr>
+                                    <td>{{ item.title }}</td>
+                                    <td>
+                                        <div class="comment-container">
+                                            <div class="comment-text">{{ item.top_comment.text }}</div>
+                                            <div class="comment-details">
+                                                <div class="comment-sentiment">
+                                                    <span class="badge
+                                                        {% if item.top_comment.sentiment.emotion in 'joy,love,gratitude,approval' %}
+                                                            bg-success
+                                                        {% elif item.top_comment.sentiment.emotion in 'anger,sadness,disappointment,disapproval' %}
+                                                            bg-danger
+                                                        {% else %}
+                                                            bg-info
+                                                        {% endif %}">
+                                                        {{ item.top_comment.sentiment.emotion }}
+                                                    </span>
+                                                    <small class="text-muted">({{ item.top_comment.sentiment.score|floatformat:2 }})</small>
+                                                </div>
+                                                <div class="comment-score">
+                                                    <small class="text-muted">Yorum Puanı: {{ item.top_comment.score }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.score }}</td>
+                                    <td>{{ item.num_comments }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Seçilen kriterlere uygun post bulunamadı.</td>
+                                </tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
 
         <!-- Subreddit 2 Sonuçları (varsa) -->
         {% if subreddit_2 %}
@@ -55,31 +193,52 @@
             <div class="card-header">
                 <h2>{{ subreddit_2 }} Analizi</h2>
             </div>
-            <div class="card-body">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Başlık</th>
-                            <th>Duygu</th>
-                            <th>Güven Skoru</th>
-                            <th>Oy</th>
-                            <th>Yorum Sayısı</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% if analysis_data_2 %}
-                        {% for item in analysis_data_2 %}
-                        <tr>
+            <div class="card-body table-container">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="sticky-header">
+                                <tr>
+                                    <th>Başlık</th>
+                                    <th style="width: 30%;">En İyi Yorum</th>
+                                    <th>Oy</th>
+                                    <th>Yorum Sayısı</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            {% if analysis_data_2 %}
+                {% for item in analysis_data_2 %}
+                 <tr>
                             <td>{{ item.title }}</td>
-                            <td>{{ item.sentiment.emotion }}</td>
-                            <td>{{ item.sentiment.score|floatformat:2 }}</td>
+                            <td>
+                                <div class="comment-container">
+                                    <div class="comment-text">{{ item.top_comment.text }}</div>
+                                    <div class="comment-details">
+                                        <div class="comment-sentiment">
+                                            <span class="badge
+                                                {% if item.top_comment.sentiment.emotion in 'joy,love,gratitude,approval' %}
+                                                    bg-success
+                                                {% elif item.top_comment.sentiment.emotion in 'anger,sadness,disappointment,disapproval' %}
+                                                    bg-danger
+                                                {% else %}
+                                                    bg-info
+                                                {% endif %}">
+                                                {{ item.top_comment.sentiment.emotion }}
+                                            </span>
+                                            <small class="text-muted">({{ item.top_comment.sentiment.score|floatformat:2 }})</small>
+                                        </div>
+                                        <div class="comment-score">
+                                            <small class="text-muted">Yorum Puanı: {{ item.top_comment.score }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                             <td>{{ item.score }}</td>
                             <td>{{ item.num_comments }}</td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="5" class="text-center">Seçilen kriterlere uygun post bulunamadı.</td>
+                            <td colspan="6" class="text-center">Seçilen kriterlere uygun post bulunamadı.</td>
                         </tr>
                     {% endif %}
                     </tbody>
@@ -87,153 +246,235 @@
             </div>
         </div>
         {% endif %}
+    </div>
+        {% if not emotion %}
+        <!-- Pie Chart'lar için yeni bölüm -->
+         <div id="pie-charts-section" class="card mb-4" style="display: block;">
+        <div class="card-header">
+            <h2>Genel Duygu Dağılımı</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="{% if subreddit_1 %}col-md-6{% else %}col-md-12{% endif %}">
+                    <div id="pie-chart-1" style="height: 400px;"></div>
+                </div>
+                {% if subreddit_2 %}
+                <div class="col-md-6">
+                    <div id="pie-chart-2" style="height: 400px;"></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <!-- Duygu Dağılımı Grafiği -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2>Duygu Dağılımı</h2>
+        </div>
+        <div class="card-body">
+            <div id="radar-chart" style="height: 400px;"></div>
+        </div>
+    </div>
 
+    <!-- Zaman Serisi Grafikleri -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2>Zaman Serisi Analizi</h2>
+        </div>
+        <div class="card-body">
+            <div id="time-series-chart-1" style="width: 100%; height: 500px;"></div>
+        </div>
+    </div>
     {% if not emotion %}
-        <!-- Duygu Dağılımı Grafiği -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h2>Duygu Dağılımı</h2>
-            </div>
-            <div class="card-body">
-                <div id="emotion-distribution-chart" style="width: 100%; height: 400px;"></div>
-            </div>
+    <!-- Memnuniyet Endeksi -->
+    <div id="satisfaction-chart-section" class="card mb-4" style="display: block;">
+        <div class="card-header">
+            <h2>Memnuniyet Endeksi</h2>
         </div>
-
-        <!-- Zaman Serisi Grafikleri -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h2>{{ subreddit_1 }} Zaman Serisi Analizi</h2>
-            </div>
-            <div class="card-body">
-                <div id="time-series-chart-1" style="width: 100%; height: 400px;"></div>
-            </div>
+        <div class="card-body">
+            <div id="satisfaction-chart" style="width: 100%; height: 300px;"></div>
         </div>
-
-        {% if subreddit_2 %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h2>{{ subreddit_2 }} Zaman Serisi Analizi</h2>
-            </div>
-            <div class="card-body">
-                <div id="time-series-chart-2" style="width: 100%; height: 400px;"></div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Memnuniyet Endeksi -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h2>Memnuniyet Endeksi</h2>
-            </div>
-            <div class="card-body">
-                <div id="satisfaction-chart" style="width: 100%; height: 300px;"></div>
-            </div>
-        </div>
+    </div>
+    {% endif %}
 
         <script>
-            // Duygu dağılımı grafiği
-            var emotions_1 = Object.keys({{ emotion_distribution_1|safe }});
-            var percentages_1 = Object.values({{ emotion_distribution_1|safe }});
-
-            var data = [{
-                type: 'bar',
-                x: emotions_1,
-                y: percentages_1,
+        // İlk subreddit için pie chart
+        {% if not emotion %}
+            var pieData1 = [{
+                values: [
+                    {{ sentiment_summary_1.positive|floatformat:1 }},
+                    {{ sentiment_summary_1.negative|floatformat:1 }},
+                    {{ sentiment_summary_1.neutral|floatformat:1 }}
+                ],
+                labels: ['Pozitif', 'Negatif', 'Nötr'],
+                type: 'pie',
                 name: '{{ subreddit_1 }}',
-                marker: {color: 'blue'}
+                marker: {
+                    colors: ['#2ecc71', '#e74c3c', '#3498db']
+                },
+                textinfo: 'label+percent',
+                hole: 0.4
             }];
 
-            {% if subreddit_2 %}
-            var emotions_2 = Object.keys({{ emotion_distribution_2|safe }});
-            var percentages_2 = Object.values({{ emotion_distribution_2|safe }});
-
-            data.push({
-                type: 'bar',
-                x: emotions_2,
-                y: percentages_2,
-                name: '{{ subreddit_2 }}',
-                marker: {color: 'red'}
-            });
-            {% endif %}
-
-            var layout = {
-                title: 'Duygu Dağılımı (%)',
-                barmode: 'group',
-                xaxis: {title: 'Duygular'},
-                yaxis: {title: 'Yüzde (%)', range: [0, 100]}
+            var pieLayout1 = {
+                title: '{{ subreddit_1 }} Duygu Dağılımı',
+                showlegend: true,
+                legend: {
+                    orientation: 'h',
+                    y: -0.2
+                }
             };
 
-            Plotly.newPlot('emotion-distribution-chart', data, layout);
+            Plotly.newPlot('pie-chart-1', pieData1, pieLayout1);
 
-            // Zaman serisi grafikleri
+            {% if subreddit_2 %}
+            // İkinci subreddit için pie chart
+            var pieData2 = [{
+                values: [
+                    {{ sentiment_summary_2.positive|floatformat:1 }},
+                    {{ sentiment_summary_2.negative|floatformat:1 }},
+                    {{ sentiment_summary_2.neutral|floatformat:1 }}
+                ],
+                labels: ['Pozitif', 'Negatif', 'Nötr'],
+                type: 'pie',
+                name: '{{ subreddit_2 }}',
+                marker: {
+                    colors: ['#2ecc71', '#e74c3c', '#3498db']
+                },
+                textinfo: 'label+percent',
+                hole: 0.4
+            }];
+
+            var pieLayout2 = {
+                title: '{{ subreddit_2 }} Duygu Dağılımı',
+                showlegend: true,
+                legend: {
+                    orientation: 'h',
+                    y: -0.2
+                }
+            };
+
+            Plotly.newPlot('pie-chart-2', pieData2, pieLayout2);
+            {% endif %}
+        {% endif %}
+        // Radar chart için veri hazırlama ve çizim
+        var emotions1 = {{ emotion_distribution_1|safe }};
+        var maxValue = Math.max(...Object.values(emotions1));
+
+        var radarData = [{
+           type: 'scatterpolar',
+           r: Object.values(emotions1),
+           theta: Object.keys(emotions1),
+           fill: 'toself',
+           name: '{{ subreddit_1 }}'
+        }];
+
+        {% if subreddit_2 %}
+        var emotions2 = {{ emotion_distribution_2|safe }};
+        maxValue = Math.max(maxValue, ...Object.values(emotions2));
+        radarData.push({
+           type: 'scatterpolar',
+           r: Object.values(emotions2),
+           theta: Object.keys(emotions2),
+           fill: 'toself',
+           name: '{{ subreddit_2 }}'
+        });
+        {% endif %}
+
+        var radarLayout = {
+           polar: {
+               radialaxis: {
+                   visible: true,
+                   range: [0, Math.ceil(maxValue * 1.2)]
+               }
+           },
+           showlegend: true,
+           title: 'Duygu Dağılımı (Sayı)'
+        };
+
+        Plotly.newPlot('radar-chart', radarData, radarLayout);
+
+            // Zaman serisi grafikleri için veri hazırlığı ve çizimi
             var timeSeries1 = {{ time_series_1|safe }};
-            var timeSeriesData1 = [
+
+            // Birinci subreddit için veri setleri
+            var timeSeriesData = [
                 {
                     x: timeSeries1.dates,
                     y: timeSeries1.positive,
-                    type: 'scatter',
-                    name: 'Pozitif',
-                    line: { color: '#2ecc71', width: 3 }
+                    type: 'bar',
+                    name: '{{ subreddit_1 }} - Pozitif',
+                    marker: { color: '#2ecc71' }
                 },
                 {
                     x: timeSeries1.dates,
                     y: timeSeries1.negative,
-                    type: 'scatter',
-                    name: 'Negatif',
-                    line: { color: '#e74c3c', width: 3 }
+                    type: 'bar',
+                    name: '{{ subreddit_1 }} - Negatif',
+                    marker: { color: '#e74c3c' }
                 },
                 {
                     x: timeSeries1.dates,
                     y: timeSeries1.neutral,
-                    type: 'scatter',
-                    name: 'Nötr',
-                    line: { color: '#3498db', width: 3 }
+                    type: 'bar',
+                    name: '{{ subreddit_1 }} - Nötr',
+                    marker: { color: '#3498db' }
                 }
             ];
 
-            var timeSeriesLayout1 = {
-                xaxis: { title: 'Tarih' },
-                yaxis: { title: 'Post Sayısı' },
-                legend: { orientation: 'h', y: -0.2 }
-            };
-
-            Plotly.newPlot('time-series-chart-1', timeSeriesData1, timeSeriesLayout1);
-
             {% if subreddit_2 %}
             var timeSeries2 = {{ time_series_2|safe }};
-            var timeSeriesData2 = [
+
+            // İkinci subreddit için veri setleri
+            timeSeriesData.push(
                 {
                     x: timeSeries2.dates,
                     y: timeSeries2.positive,
-                    type: 'scatter',
-                    name: 'Pozitif',
-                    line: { color: '#2ecc71', width: 3 }
+                    type: 'bar',
+                    name: '{{ subreddit_2 }} - Pozitif',
+                    marker: { color: '#27ae60' }
                 },
                 {
                     x: timeSeries2.dates,
                     y: timeSeries2.negative,
-                    type: 'scatter',
-                    name: 'Negatif',
-                    line: { color: '#e74c3c', width: 3 }
+                    type: 'bar',
+                    name: '{{ subreddit_2 }} - Negatif',
+                    marker: { color: '#c0392b' }
                 },
                 {
                     x: timeSeries2.dates,
                     y: timeSeries2.neutral,
-                    type: 'scatter',
-                    name: 'Nötr',
-                    line: { color: '#3498db', width: 3 }
+                    type: 'bar',
+                    name: '{{ subreddit_2 }} - Nötr',
+                    marker: { color: '#2980b9' }
                 }
-            ];
-
-            var timeSeriesLayout2 = {
-                xaxis: { title: 'Tarih' },
-                yaxis: { title: 'Post Sayısı' },
-                legend: { orientation: 'h', y: -0.2 }
-            };
-
-            Plotly.newPlot('time-series-chart-2', timeSeriesData2, timeSeriesLayout2);
+            );
             {% endif %}
 
+            var timeSeriesLayout = {
+                title: 'Zaman İçinde Duygu Dağılımı',
+                barmode: 'group',
+                xaxis: {
+                    title: 'Tarih',
+                    tickangle: -45
+                },
+                yaxis: {
+                    title: 'Post Sayısı'
+                },
+                legend: {
+                    orientation: 'h',
+                    y: -0.2
+                },
+                margin: {
+                    b: 100  // Alt kenar boşluğunu artır
+                }
+            };
+
+            // Grafik çizimi
+            Plotly.newPlot('time-series-chart-1', timeSeriesData, timeSeriesLayout);
+
+        {% if not emotion %}
             // Memnuniyet endeksi grafiği
             var satisfactionData = [{
                 type: 'indicator',
@@ -278,6 +519,7 @@
                 }
             });
             {% endif %}
+        {% endif %}
 
             var satisfactionLayout = {
                 grid: { rows: 1, columns: {% if subreddit_2 %}2{% else %}1{% endif %}, pattern: 'independent' },
@@ -287,8 +529,8 @@
             };
 
             Plotly.newPlot('satisfaction-chart', satisfactionData, satisfactionLayout);
+
         </script>
-    {% endif %}
 
         <!-- AI Analiz Butonu ve Sonuç Alanı -->
         <div class="card mb-4">

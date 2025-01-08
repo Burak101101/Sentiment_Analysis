@@ -1,24 +1,140 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="index-profile">
-   <div class="profile-container">
-    <h1>Welcome to the Reddit Sentiment Analysis, {{ request.user.username }}</h1>
+<div class="container-fluid px-4">
+    <h1 class="mt-4 mb-5">Dashboard</h1>
 
     {% if user.is_authenticated %}
-        <div class="profile-info">
-            <h2>User Profile</h2>
-            <p><strong>Username:</strong> {{ user.username }}</p>
-            <p><strong>Email:</strong> {{ user.email }}</p>
-            <p><strong>First Name:</strong> {{ user.first_name }}</p>
-            <p><strong>Last Name:</strong> {{ user.last_name }}</p>
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-5">
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-white-50">Today's Analysis</h6>
+                                <h2 class="mb-0">{{ today_analysis }}</h2>
+                            </div>
+                            <div class="rounded-circle bg-white p-3">
+                                <i class="material-icons text-primary">analytics</i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-white-50">Total Analysis</h6>
+                                <h2 class="mb-0">{{ total_analysis }}</h2>
+                            </div>
+                            <div class="rounded-circle bg-white p-3">
+                                <i class="material-icons text-success">bar_chart</i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-6 col-md-12">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-white-50">Most Analyzed Subreddit</h6>
+                                <h2 class="mb-0">r/{{ most_analyzed_subreddit|default:"None" }}</h2>
+                            </div>
+                            <div class="rounded-circle bg-white p-3">
+                                <i class="material-icons text-info">reddit</i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <a href="{% url 'users:profile' %}" class="profile">Update Profile</a>
-        <a href="{% url 'analyze_subreddit_page' %}" class="btn btn-primary">Enter</a>
+
+        <!-- Recent Analyzed Texts -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="material-icons align-middle me-1">history</i>
+                    Recent Analyzed Texts
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_reports %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Subreddit</th>
+                                    <th>Title</th>
+                                    <th>Sentiment</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in recent_reports %}
+                                <tr>
+                                    <td>r/{{ report.subreddit_1 }}</td>
+                                    <td>{{ report.title|truncatechars:50 }}</td>
+                                    <td>
+                                        <span class="badge {% if report.sentiment_score > 0 %}bg-success{% elif report.sentiment_score < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {% if report.sentiment_score > 0 %}
+                                                Positive ({{ report.sentiment_score|floatformat:2 }})
+                                            {% elif report.sentiment_score < 0 %}
+                                                Negative ({{ report.sentiment_score|floatformat:2 }})
+                                            {% else %}
+                                                Neutral (0.00)
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ report.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No recent analysis found.</p>
+                {% endif %}
+            </div>
+        </div>
+
     {% else %}
-        <p>Please log in to view your profile.</p>
-        <a href="{% url 'users:login' %}" class="btn btn-primary">Login</a>
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h2 class="mb-4">Welcome to Reddit Sentiment Analysis</h2>
+                <p class="mb-4">Please log in to view your dashboard and start analyzing.</p>
+                <a href="{% url 'users:login' %}" class="btn btn-primary me-2">Login</a>
+                <a href="{% url 'users:register' %}" class="btn btn-outline-primary">Register</a>
+            </div>
+        </div>
     {% endif %}
-    </div>
 </div>
+
+<style>
+    .card {
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+    }
+
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(33, 40, 50, 0.125);
+    }
+
+    .material-icons {
+        vertical-align: middle;
+    }
+
+    .table > :not(caption) > * > * {
+        padding: 1rem;
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+    }
+</style>
 {% endblock %}

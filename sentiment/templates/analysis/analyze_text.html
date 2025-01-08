@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Metin Duygu Analizi</h3>
+                </div>
+                <div class="card-body">
+                    <form id="textAnalysisForm" method="POST">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="text">Analiz Edilecek Metin:</label>
+                            <textarea
+                                class="form-control"
+                                id="text"
+                                name="text"
+                                rows="4"
+                                required
+                                placeholder="Analiz etmek istediğiniz metni buraya yazın..."
+                            ></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">
+                            <i class="material-icons align-middle">analytics</i>
+                            <span class="ms-1">Analiz Et</span>
+                        </button>
+                    </form>
+                    <div id="result" class="mt-4"></div>
+
+                    <!-- Son Analizler Bölümü -->
+                    {% if user.is_authenticated %}
+                    <div class="mt-5">
+                        <h4>Son Analizleriniz</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Metin</th>
+                                        <th>Duygu</th>
+                                        <th>Skor</th>
+                                        <th>Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for analysis in recent_analyses %}
+                                    <tr>
+                                        <td>{{ analysis.content|truncatechars:50 }}</td>
+                                        <td>{{ analysis.emotion_data.emotion }}</td>
+                                        <td>
+                                            <span class="badge {% if analysis.sentiment_score > 0 %}bg-success{% elif analysis.sentiment_score < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                {{ analysis.sentiment_score|floatformat:2 }}
+                                            </span>
+                                        </td>
+                                        <td>{{ analysis.created_at|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">Henüz analiz yapılmamış.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.getElementById('textAnalysisForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const text = document.getElementById('text').value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const resultDiv = document.getElementById('result');
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    const originalButtonContent = submitButton.innerHTML;
+
+    // Sadece butonda loading göster
+    submitButton.innerHTML = `
+        <div class="spinner-border spinner-border-sm text-light" role="status">
+            <span class="visually-hidden">Analyzing...</span>
+        </div>
+    `;
+    submitButton.disabled = true;
+
+    try {
+        const response = await fetch('{% url "analyze_text" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            const result = data.result;
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h4 class="alert-heading">Analiz Sonucu</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Temel Duygu</h5>
+                                    <p class="display-4 text-primary">${result.emotion}</p>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar"
+                                             style="width: ${result.score * 100}%">
+                                            ${(result.score * 100).toFixed(2)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Diğer Olası Duygular</h5>
+                                    <ul class="list-group">
+                                        ${result.all_predictions.map(pred => `
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                ${pred.emotion}
+                                                <span class="badge bg-primary rounded-pill">
+                                                    ${(pred.score * 100).toFixed(2)}%
+                                                </span>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <h4 class="alert-heading">Hata!</h4>
+                <p>${error.message || 'Analiz sırasında bir hata oluştu.'}</p>
+            </div>
+        `;
+    } finally {
+        // İşlem bittiğinde butonu eski haline getir
+        submitButton.innerHTML = originalButtonContent;
+        submitButton.disabled = false;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
